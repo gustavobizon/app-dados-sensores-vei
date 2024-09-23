@@ -53,7 +53,16 @@ export default function GraphScreen({ route }) {
       {
         label: 'Temperatura',
         data: sensorData.map(item => item.temperatura),
-        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(200, 0, 0, 1)',
+        borderColor: 'rgba(200, 0, 0, 1)',
+        fill: false,
+        tension: 0.1,
+      },
+      {
+        label:'Umidade',
+        data: sensorData.map(item => item.umidade),
+        backgroundColor: 'rgba(0, 0, 200, 1)',
+        borderColor: 'rgba(0, 0, 200, 1)',
         fill: false,
         tension: 0.1,
       },
@@ -78,6 +87,7 @@ export default function GraphScreen({ route }) {
       },
     },
   };
+
 
   const renderChart = () => {
     switch (chartType) {
@@ -121,6 +131,6 @@ export default function GraphScreen({ route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'flex-start', alignItems: 'flex-end', padding: 20 },
   title: { fontSize: 18, marginBottom: 10 },
-  picker: { height: 40, width: 150, marginBottom: 20, borderColor: '#ccc', borderWidth: 1, borderRadius: 5 },
+  picker: { height: 40, width: 150, marginBottom: 20, borderColor: '#000', borderWidth: 1, borderRadius: 5 },
   pickerItem: { height: 40 },
 });
