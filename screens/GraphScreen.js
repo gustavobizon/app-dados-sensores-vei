@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Picker } from 'react-native';
-import { Line, Bar } from 'react-chartjs-2';
+import { View, Text, StyleSheet, Picker, ScrollView, Dimensions } from 'react-native';
+import { Line, Bar, Radar } from 'react-chartjs-2';
 import 'chart.js/auto';
 
 export default function GraphScreen({ route }) {
   const [sensorData, setSensorData] = useState([]);
   const [chartType, setChartType] = useState('line');
-  const [timeRange, setTimeRange] = useState('lastHour'); // Novo estado para intervalo de tempo
+  const [timeRange, setTimeRange] = useState('lastHour');
   const { token } = route.params;
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function GraphScreen({ route }) {
           },
         });
         const data = await response.json();
-        const filteredData = filterSensorData(data); // Aplicar filtro
+        const filteredData = filterSensorData(data);
         setSensorData(filteredData);
       } catch (error) {
         console.error('Erro ao buscar dados dos sensores:', error);
@@ -26,7 +26,7 @@ export default function GraphScreen({ route }) {
     };
 
     fetchSensorData();
-  }, [token, timeRange]); // Dependência adicionada
+  }, [token, timeRange]);
 
   const filterSensorData = (data) => {
     const now = new Date();
@@ -40,37 +40,35 @@ export default function GraphScreen({ route }) {
         case 'lastWeek':
           return itemDate >= new Date(now - 7 * 24 * 60 * 60 * 1000);
         case 'last30Days':
-          return itemDate >= new Date(now - 30 * 24 * 60 * 60 * 1000); // Últimos 30 dias
+          return itemDate >= new Date(now - 30 * 24 * 60 * 60 * 1000);
         default:
-          return true; // Caso padrão (sem filtro)
+          return true;
       }
     });
   };
 
-  const data = {
+  const createChartData = (label, dataKey, color) => ({
     labels: sensorData.map(item => new Date(item.timestamp).toLocaleTimeString()),
     datasets: [
       {
-        label: 'Temperatura',
-        data: sensorData.map(item => item.temperatura),
-        backgroundColor: 'rgba(200, 0, 0, 1)',
-        borderColor: 'rgba(200, 0, 0, 1)',
-        fill: false,
-        tension: 0.1,
-      },
-      {
-        label:'Umidade',
-        data: sensorData.map(item => item.umidade),
-        backgroundColor: 'rgba(0, 0, 200, 1)',
-        borderColor: 'rgba(0, 0, 200, 1)',
+        label,
+        data: sensorData.map(item => item[dataKey]),
+        backgroundColor: color,
+        borderColor: color,
         fill: false,
         tension: 0.1,
       },
     ],
-  };
+  });
+
+  // Definindo as cores
+  const tempData = createChartData('Temperatura', 'temperatura', 'rgba(255, 0, 0, 1)'); // Vermelho
+  const umiData = createChartData('Umidade', 'umidade', 'rgba(0, 0, 255, 1)');        // Azul
+  const vibData = createChartData('Vibração', 'vibracao', 'rgba(0, 255, 0, 1)');     // Verde
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     scales: {
       x: {
         title: {
@@ -81,56 +79,94 @@ export default function GraphScreen({ route }) {
       y: {
         title: {
           display: true,
-          text: 'Temperatura (°C)',
+          text: 'Valor',
         },
         beginAtZero: true,
       },
     },
   };
 
-
-  const renderChart = () => {
-    switch (chartType) {
-      case 'line':
-        return <Line data={data} options={options} />;
-      case 'bar':
-        return <Bar data={data} options={options} />;
-      default:
-        return <Line data={data} options={options} />;
-    }
+  const renderChart = (data) => {
+    return (
+      <View style={styles.chartContainer}>
+        {(() => {
+          switch (chartType) {
+            case 'line':
+              return <Line data={data} options={options} />;
+            case 'bar':
+              return <Bar data={data} options={options} />;
+            case 'radar':
+              return <Radar data={data} options={options} />;
+            default:
+              return <Line data={data} options={options} />;
+          }
+        })()}
+      </View>
+    );
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Gráfico de Dados dos Sensores</Text>
-      <Picker
-        selectedValue={timeRange}
-        style={styles.picker}
-        onValueChange={(itemValue) => setTimeRange(itemValue)}
-        itemStyle={styles.pickerItem}
-      >
-        <Picker.Item label="Última Hora" value="lastHour" />
-        <Picker.Item label="Últimas 24 Horas" value="last24Hours" />
-        <Picker.Item label="Última Semana" value="lastWeek" />
-        <Picker.Item label="Últimos 30 Dias" value="last30Days" /> {/* Nova opção */}
-      </Picker>
-      <Picker
-        selectedValue={chartType}
-        style={styles.picker}
-        onValueChange={(itemValue) => setChartType(itemValue)}
-        itemStyle={styles.pickerItem}
-      >
-        <Picker.Item label="Linha" value="line" />
-        <Picker.Item label="Barra" value="bar" />
-      </Picker>
-      {renderChart()}
-    </View>
+    <ScrollView style={styles.scrollContainer}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Gráfico de Dados dos Sensores</Text>
+
+        <Picker
+          selectedValue={timeRange}
+          style={styles.picker}
+          onValueChange={(itemValue) => setTimeRange(itemValue)}
+        >
+          <Picker.Item label="Última Hora" value="lastHour" />
+          <Picker.Item label="Últimas 24 Horas" value="last24Hours" />
+          <Picker.Item label="Última Semana" value="lastWeek" />
+          <Picker.Item label="Últimos 30 Dias" value="last30Days" />
+        </Picker>
+
+        <Picker
+          selectedValue={chartType}
+          style={styles.picker}
+          onValueChange={(itemValue) => setChartType(itemValue)}
+        >
+          <Picker.Item label="Linha" value="line" />
+          <Picker.Item label="Barra" value="bar" />
+          <Picker.Item label="Torta" value="radar" />
+        </Picker>
+
+        <Text style={styles.chartLabel}>Temperatura</Text>
+        {renderChart(tempData)}
+
+        <Text style={styles.chartLabel}>Umidade</Text>
+        {renderChart(umiData)}
+
+        <Text style={styles.chartLabel}>Vibração</Text>
+        {renderChart(vibData)}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'flex-start', alignItems: 'flex-end', padding: 20 },
-  title: { fontSize: 18, marginBottom: 10 },
-  picker: { height: 40, width: 150, marginBottom: 20, borderColor: '#000', borderWidth: 1, borderRadius: 5 },
-  pickerItem: { height: 40 },
+  container: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  picker: {
+    height: 40,
+    width: 150,
+    marginBottom: 20,
+    borderColor: '#000',
+    borderWidth: 1,
+    borderRadius: 5,
+  },
+  chartLabel: {
+    fontSize: 16,
+    marginVertical: 10,
+  },
+  chartContainer: {
+    height: 300, // Definindo uma altura fixa de 300 pixels
+    width: 1300,
+    marginBottom: 20,
+}
 });
